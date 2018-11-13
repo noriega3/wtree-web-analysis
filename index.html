@@ -209,6 +209,7 @@
         const Search = ({onChange}) =>
             ele('input', {
                 type: 'input',
+                placeholder: 'Search for person',
                 onChange
             });
 
@@ -307,9 +308,11 @@
                 return ele(ErrorBoundary, null, [
                     ele('div', { className: 'app-container', key: 'app' }, null, [
                         ele(Search, { key: 'search', onChange: this._onSearch}),
-                        ele('button', { key: 'shuffle', onClick: this._shuffleList.bind(this) }, null, 'Shuffle'),
-                        ele('button', { key: 'sort-first', onClick: this._sortByFirst.bind(this) }, null, 'Sort (First Name)'),
-                        ele('button', { key: 'sort-last', onClick: this._sortByLast.bind(this) }, null, 'Sort (Last Name)'),
+                        ele('div', { className: 'list-actions'}, null, [
+                            ele('button', { key: 'shuffle', onClick: this._shuffleList.bind(this) }, null, 'Shuffle'),
+                            ele('button', { key: 'sort-first', onClick: this._sortByFirst.bind(this) }, null, 'Sort (First Name)'),
+                            ele('button', { key: 'sort-last', onClick: this._sortByLast.bind(this) }, null, 'Sort (Last Name)'),
+                        ]),
                         ele(ListContainer, { key: 'list', personList: visiblePersonList })
                     ])
                 ]);
