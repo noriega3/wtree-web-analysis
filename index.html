@@ -45,22 +45,22 @@
 
    -->
 <!DOCTYPE html>
-<html class="no-js" lang="en">
+<html class='no-js' lang='en'>
 <head>
-    <meta charset="utf-8">
-    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta charset='utf-8'>
+    <meta http-equiv='x-ua-compatible' content='ie=edge'>
     <title>Single Page Application</title>
-    <meta name="description" content="">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name='description' content=''>
+    <meta name='viewport' content='width=device-width, initial-scale=1, shrink-to-fit=no'>
     <style type='text/css'>
         body {
-            margin: 0px;
-            padding: 0px;
+            margin: 0;
+            padding: 0;
         }
 
         .app-container {
             width: 400px;
-            margin: 0 auto 0 auto;
+            margin: 0 auto;
         }
 
         .image {
@@ -76,188 +76,162 @@
 </head>
 <body>
 <!-- Container for our application -->
-<div id="app"></div>
+<div id='app'></div>
 
 <!-- 3rd Party Scripts -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/react/16.6.1/umd/react.production.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/16.6.1/umd/react-dom.production.min.js"></script>
+<script src='https://cdnjs.cloudflare.com/ajax/libs/react/16.6.1/umd/react.production.min.js'></script>
+<script src='https://cdnjs.cloudflare.com/ajax/libs/react-dom/16.6.1/umd/react-dom.production.min.js'></script>
 
 <!-- Our Application Logic -->
 <script>
-    window.onload = function(){
+    window.onload = function () {
         let ele = React.createElement;
 
-    /*==================================================
+        /*==================================================
 
-     API
+         API
 
-     ***************************************************/
+         ***************************************************/
 
-    /**
-     * Get the data from the namegame endpoint.
-     *
-     * The data comes back in the format:
-     *
-     *    [
-     *        { firstName: 'Viju,  lastName: 'Legard',  headshot: { url: '...' } },
-     *        { firstName: 'Matt', lastName: 'Seibert', headshot: { url: '...' } },
-     *        ...
-     *    ]
-     */
-    const getPersonList = () =>
-        new Promise((resolve, reject) => {
+        /**
+         * Get the data from the namegame endpoint.
+         *
+         * The data comes back in the format:
+         *
+         *    [
+         *        { firstName: 'Viju,  lastName: 'Legard',  headshot: { url: '...' } },
+         *        { firstName: 'Matt', lastName: 'Seibert', headshot: { url: '...' } },
+         *        ...
+         *    ]
+         */
+        const getPersonList = () => new Promise((resolve, reject) => {
             fetch('https://willowtreeapps.com/api/v1.0/profiles')
                 .then(response => {
-                    if (response.status !== 200)
-                        reject(new Error("Error!"));
+                    if (response.status !== 200) reject(new Error('Error!'));
                     return response.json().then(resolve);
                 });
         });
 
 
-    /*==================================================
+        /*==================================================
 
-     DATA TRANSFORMS
+         DATA TRANSFORMS
 
-     ***************************************************/
+         ***************************************************/
 
+        // headshot URLs are scheme relative //
+        // prepend http: to prevent invalid schemes like file:// or uri://
+        const getImageUrl = ({url = '//images.ctfassets.net/3cttzl4i3k1h/1PoufpRNis4mmAmiqkA0ge/ef1fc7606584d54b5892010a65a5a262/WT_Logo-Hye-tTeI0Z.png'}) => `http:${url}`;
 
-    function getLastName(person) {
-        return person.lastName;
-    }
-
-    const getFirstName = (person) => {
-        return person.firstName;
-    };
-
-    // headshot URLs are scheme relative //
-    // prepend http: to prevent invalid schemes like file:// or uri://
-    const getImageUrl = ({url='//images.ctfassets.net/3cttzl4i3k1h/1PoufpRNis4mmAmiqkA0ge/ef1fc7606584d54b5892010a65a5a262/WT_Logo-Hye-tTeI0Z.png'}) => `http:${url}`;
-
-    /**
-     * Fisher-Yates shuffle
-     */
-    const shuffleList = (list) => {
-        // Make a copy & don't mutate the passed in list
-        let result = list.slice(1);
-
-        let tmp, j, i = list.length - 1
-
-        for (; i > 0; i -= 1) {
-            j = Math.floor(Math.random() * (i + 1));
-            tmp = list[i];
-            list[i] = list[j];
-            list[j] = tmp;
-        }
-
-        return result;
-    };
-
-
-    /**
-     * Remove any people that do not have the name we are
-     * searching for.
-     */
-    const filterByName = (searchForName, personList) => {
-            let searchTerm = searchForName.toString().toLowerCase();
-            return personList.filter(({firstName, lastName}) => {
-                return firstName.toLowerCase().startsWith(searchTerm) || lastName.toLowerCase().startsWith(searchTerm);
-        });
-    };
-
-
-    /**
-     * Takes in a property of an object list, e.g. "name" below
-     *
-     *    people = [{ name: 'Sam' }, { name: 'Jon' }, { name: 'Kevin' }]
-     *
-     * And returns a function that will sort that list, e.g.
-     *
-     *    const sortPeopleByName = sortObjListByProp('name');
-     *    const sortedPeople = sortPeopleByName(people);
-     *
-     *  We now have:
-     *
-     *    console.log(sortedPeople)
-     *    > [{ name: 'Jon' }, { name: 'Kevin' }, { name: 'Sam' }]
-     *
-     */
-    const sortObjListByProp = (prop) => {
-        return function(objList) {
+        /**
+         * Fisher-Yates shuffle
+         */
+        const shuffleList = (list) => {
             // Make a copy & don't mutate the passed in list
-            let result = objList.slice(1);
+            let result = list.slice(1);
 
-            result.sort((a, b) => {
-                let [propA] = a[prop].split(" ").slice(-1);
-                let [propB] = b[prop].split(" ").slice(-1);
-                return propA < propB ? -1 : propA > propB ? 1 : 0;
-            });
+            let tmp, j, i = list.length - 1;
+
+            for (; i > 0; i -= 1) {
+                j = Math.floor(Math.random() * (i + 1));
+                tmp = list[i];
+                list[i] = list[j];
+                list[j] = tmp;
+            }
 
             return result;
         };
-    };
 
-    const sortByFirstName = sortObjListByProp('firstName');
-    const sortByLastName = sortObjListByProp('lastName');
+        /**
+         * Remove any people that do not have the name we are
+         * searching for.
+         */
+        const filterByName = (searchForName, personList) => {
+            let searchTerm = searchForName.toString().toLowerCase();
+            return personList.filter(({firstName, lastName}) => firstName.toLowerCase().startsWith(searchTerm) || lastName.toLowerCase().startsWith(searchTerm));
+        };
 
-    /*==================================================
+        /**
+         * Takes in a property of an object list, e.g. "name" below
+         *
+         *    people = [{ name: 'Sam' }, { name: 'Jon' }, { name: 'Kevin' }]
+         *
+         * And returns a function that will sort that list, e.g.
+         *
+         *    const sortPeopleByName = sortObjListByProp('name');
+         *    const sortedPeople = sortPeopleByName(people);
+         *
+         *  We now have:
+         *
+         *    console.log(sortedPeople)
+         *    > [{ name: 'Jon' }, { name: 'Kevin' }, { name: 'Sam' }]
+         *
+         */
+        const sortObjListByProp = (prop) => {
+            return function (objList) {
+                // Make a copy & don't mutate the passed in list
+                let result = objList.slice(1);
 
-     VIEW (React)
+                result.sort((a, b) => {
+                    let [propA] = a[prop].split(' ').slice(-1);
+                    let [propB] = b[prop].split(' ').slice(-1);
+                    return propA < propB ? -1 : propA > propB ? 1 : 0;
+                });
 
-     ***************************************************/
+                return result;
+            };
+        };
 
-        const Search = ({onChange}) =>
-            ele('input', {
-                type: 'input',
-                placeholder: 'Search for person',
-                onChange
-            });
+        const sortByFirstName = sortObjListByProp('firstName');
+        const sortByLastName = sortObjListByProp('lastName');
 
-        const Thumbnail = ({src}) =>
-            ele('img',{
-                className: 'image',
-                src
-            });
+        /*==================================================
 
-        const ListRow = ({person: {firstName, lastName, headshot}, ...props}) =>
-            ele('tr', { key: `${firstName} ${lastName}` }, [
-                ele('td',{ key: 'thumb' }, ele(Thumbnail, { src: getImageUrl(headshot) })),
-                ele('td',{ key: 'first' }, null, firstName),
-                ele('td',{ key: 'last' }, null, lastName)
+         VIEW (React)
+
+         ***************************************************/
+
+        const Search = ({onChange}) => ele('input', {type: 'input', placeholder: 'Search for person', onChange});
+
+        const Thumbnail = ({src}) => ele('img', {className: 'image', src});
+
+        const ListRow = ({person: {firstName, lastName, headshot}}) =>
+            ele('tr', {key: `${firstName} ${lastName}`}, [
+                ele('td', {key: 'thumb'}, ele(Thumbnail, {src: getImageUrl(headshot)})),
+                ele('td', {key: 'first'}, null, firstName),
+                ele('td', {key: 'last'}, null, lastName)
             ]);
 
         const ListContainer = ({personList}) =>
-            ele('table', { className: 'list-container' }, [
-                ele('thead',{ key: 'thead' }, ele('tr',{}, [
-                    ele('th',{ key: 'thumb-h' }, null, 'Thumbnail'),
-                    ele('th',{ key: 'first-h' }, null, 'First Name'),
-                    ele('th',{ key: 'last-h' }, null, 'Last Name')
-                ])),
-                ele('tbody',{ key: 'tbody' },
-                    personList.map((person, i) => ele(ListRow, { key: `person-${i}`, person }))
+            ele('table', {className: 'list-container'}, [
+                ele('thead', {key: 'thead'},
+                    ele('tr', {}, [
+                        ele('th', {key: 'thumb-h'}, null, 'Thumbnail'),
+                        ele('th', {key: 'first-h'}, null, 'First Name'),
+                        ele('th', {key: 'last-h'}, null, 'Last Name')
+                    ])
+                ),
+                ele('tbody', {key: 'tbody'},
+                    personList.map((person, i) => ele(ListRow, {key: `person-${i}`, person}))
                 )
-        ]);
+            ]);
 
         const debounce = (fn, time) => {
             let timeout;
 
             return function (...args) {
                 const functionCall = () => fn.apply(this, args);
-
                 clearTimeout(timeout);
                 timeout = setTimeout(functionCall, time);
-            }
+            };
         };
 
-        class App extends React.Component{
-            constructor(props){
+        class App extends React.Component {
+            constructor(props) {
                 super(props);
                 this.state = {
-                    personList: [],
-                    visiblePersonList: []
+                    personList: [], visiblePersonList: []
                 };
-
-
 
                 this._onSearch = this._onSearch.bind(this);
                 this.setVisiblePersonList = debounce(this.setVisiblePersonList, 300);
@@ -265,11 +239,9 @@
 
 
             componentDidMount() {
-                getPersonList().then((personList) =>
-                    this.setState({
-                        personList,
-                        visiblePersonList: personList
-                    }));
+                getPersonList().then((personList) => this.setState({
+                    personList, visiblePersonList: personList
+                }));
             }
 
             _shuffleList() {
@@ -292,28 +264,28 @@
 
             _onSearch(e) {
                 e.persist();
-                this.setVisiblePersonList(e.target.value)
+                this.setVisiblePersonList(e.target.value);
             }
 
-            setVisiblePersonList(query){
+            setVisiblePersonList(query) {
                 this.setState({
                     visiblePersonList: filterByName(query, this.state.personList)
-                })
+                });
             }
 
 
             render() {
-                const { visiblePersonList } = this.state;
+                const {visiblePersonList} = this.state;
 
                 return ele(ErrorBoundary, null, [
-                    ele('div', { className: 'app-container', key: 'app' }, null, [
-                        ele(Search, { key: 'search', onChange: this._onSearch}),
-                        ele('div', { className: 'list-actions'}, null, [
-                            ele('button', { key: 'shuffle', onClick: this._shuffleList.bind(this) }, null, 'Shuffle'),
-                            ele('button', { key: 'sort-first', onClick: this._sortByFirst.bind(this) }, null, 'Sort (First Name)'),
-                            ele('button', { key: 'sort-last', onClick: this._sortByLast.bind(this) }, null, 'Sort (Last Name)'),
+                    ele('div', {className: 'app-container', key: 'app'}, null, [
+                        ele(Search, {key: 'search', onChange: this._onSearch}),
+                        ele('div', {className: 'list-actions'}, null, [
+                            ele('button', {key: 'shuffle', onClick: this._shuffleList.bind(this)}, null, 'Shuffle'),
+                            ele('button', {key: 'sort-first', onClick: this._sortByFirst.bind(this)}, null, 'Sort (First Name)'),
+                            ele('button', {key: 'sort-last', onClick: this._sortByLast.bind(this)}, null, 'Sort (Last Name)')
                         ]),
-                        ele(ListContainer, { key: 'list', personList: visiblePersonList })
+                        ele(ListContainer, {key: 'list', personList: visiblePersonList})
                     ])
                 ]);
             }
@@ -322,11 +294,11 @@
         class ErrorBoundary extends React.Component {
             constructor(props) {
                 super(props);
-                this.state = { hasError: false };
+                this.state = {hasError: false};
             }
 
             static getDerivedStateFromError(error) {
-                return { hasError: true };
+                return {hasError: true};
             }
 
             componentDidCatch(error, info) {
@@ -334,21 +306,15 @@
             }
 
             render() {
-                if (this.state.hasError) {
-                    return ele('h1', null, 'Something went wrong.')
-                }
-
-                return this.props.children;
+                return this.state.hasError ? ele('h1', null, 'Something went wrong.') : this.props.children;
             }
         }
 
 
-        ReactDOM.render(
-            ele(App),
-            document.getElementById('app')
-        );
+        //Render app
+        ReactDOM.render(ele(App), document.getElementById('app'));
 
-    }
+    };
 
 </script>
 </body>
