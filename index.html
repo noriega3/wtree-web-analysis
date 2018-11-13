@@ -80,12 +80,13 @@
 
 
 <!-- 3rd Party Scripts -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/react/0.14.7/react.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/react/0.14.7/react-dom.js"></script>
-
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/16.6.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/16.6.1/umd/react-dom.production.min.js"></script>
 
 <!-- Our Application Logic -->
 <script>
+    window.onload = function(){
+        var ele = React.createElement;
 
     /*==================================================
 
@@ -137,8 +138,8 @@
 
     // headshot URLs are scheme relative //
     // prepend http: to prevent invalid schemes like file:// or uri://
-    const getImageUrl = (person) => {
-        return `http:${person.headshot.url}`;
+        const getImageUrl = ({url='//images.ctfassets.net/3cttzl4i3k1h/1PoufpRNis4mmAmiqkA0ge/ef1fc7606584d54b5892010a65a5a262/WT_Logo-Hye-tTeI0Z.png'}) => {
+            return `http:${url}`;
     };
 
     /**
@@ -220,89 +221,146 @@
 
      ***************************************************/
 
-    const Search = (props) => React.DOM.input({
-        type: 'input',
-        onChange: props.onChange
-    });
-
-    const Thumbnail = (props) => React.DOM.img({
-        className: 'image',
-        src: props.src
-    });
-
-    const ListRow = (props) => React.DOM.tr({ key: `${props.person.firstName} ${props.person.lastName}` }, [
-        React.DOM.td({ key: 'thumb' }, React.createElement(Thumbnail, { src: getImageUrl(props.person) })),
-        React.DOM.td({ key: 'first' }, null, getFirstName(props.person)),
-        React.DOM.td({ key: 'last' }, null, getLastName(props.person)),
-    ]);
-
-    const ListContainer = (props) => React.DOM.table({ className: 'list-container' }, [
-        React.DOM.thead({ key: 'thead' }, React.DOM.tr({}, [
-            React.DOM.th({ key: 'thumb-h' }, null, 'Thumbnail'),
-            React.DOM.th({ key: 'first-h' }, null, 'First Name'),
-            React.DOM.th({ key: 'last-h' }, null, 'Last Name')
-        ])),
-        React.DOM.tbody({ key: 'tbody' }, props.personList.map((person, i) =>
-            React.createElement(ListRow, { key: `person-${i}`, person })))
-    ]);
-
-    const App = React.createClass({
-        getInitialState() {
-            return {
-                personList: [],
-                visiblePersonList: []
-            };
-        },
-
-        componentDidMount() {
-            getPersonList().then((personList) =>
-                this.setState({
-                    personList,
-                    visiblePersonList: personList
-                }));
-        },
-
-        _shuffleList() {
-            this.setState({
-                visiblePersonList: shuffleList(this.state.personList)
+        const Search = ({onChange}) =>
+            ele('input', {
+                type: 'input',
+                onChange
             });
-        },
 
-        _sortByFirst() {
-            this.setState({
-                visiblePersonList: sortByFirstName(this.state.personList)
+        const Thumbnail = ({src}) =>
+            ele('img',{
+                className: 'image',
+                src
             });
-        },
 
-        _sortByLast() {
-            this.setState({
-                visiblePersonList: sortByLastName(this.state.personList)
-            });
-        },
-
-        _onSearch(e) {
-            this.setState({
-                visiblePersonList: filterByName(e.target.value, this.state.personList)
-            });
-        },
-
-        render() {
-            const { visiblePersonList } = this.state;
-
-            return React.DOM.div({ className: 'app-container' }, [
-                React.createElement(Search, { key: 'search', onChange: this._onSearch }),
-                React.DOM.button({ key: 'shuffle', onClick: this._shuffleList }, null, 'Shuffle'),
-                React.DOM.button({ key: 'sort-first', onClick: this._sortByFirst }, null, 'Sort (First Name)'),
-                React.DOM.button({ key: 'sort-last', onClick: this._sortByLast }, null, 'Sort (Last Name)'),
-                React.createElement(ListContainer, { key: 'list', personList: visiblePersonList })
+        const ListRow = ({person: {firstName, lastName, headshot}, ...props}) =>
+            ele('tr', { key: `${firstName} ${lastName}` }, [
+                ele('td',{ key: 'thumb' }, ele(Thumbnail, { src: getImageUrl(headshot) })),
+                ele('td',{ key: 'first' }, null, firstName),
+                ele('td',{ key: 'last' }, null, lastName)
             ]);
-        }
-    });
 
-    ReactDOM.render(
-        React.createElement(App),
-        document.getElementById('app')
-    );
+        const ListContainer = ({personList}) =>
+            ele('table', { className: 'list-container' }, [
+                ele('thead',{ key: 'thead' }, ele('tr',{}, [
+                    ele('th',{ key: 'thumb-h' }, null, 'Thumbnail'),
+                    ele('th',{ key: 'first-h' }, null, 'First Name'),
+                    ele('th',{ key: 'last-h' }, null, 'Last Name')
+                ])),
+                ele('tbody',{ key: 'tbody' },
+                    personList.map((person, i) => ele(ListRow, { key: `person-${i}`, person }))
+                )
+        ]);
+
+        const debounce = (fn, time) => {
+            let timeout;
+
+            return function (...args) {
+                const functionCall = () => fn.apply(this, args);
+
+                clearTimeout(timeout);
+                timeout = setTimeout(functionCall, time);
+            }
+        };
+
+        class App extends React.Component{
+            constructor(props){
+                super(props);
+                this.state = {
+                    personList: [],
+                    visiblePersonList: []
+                };
+
+
+
+                this._onSearch = this._onSearch.bind(this);
+                this.setVisiblePersonList = debounce(this.setVisiblePersonList, 300);
+            }
+
+
+            componentDidMount() {
+                getPersonList().then((personList) =>
+                    this.setState({
+                        personList,
+                        visiblePersonList: personList
+                    }));
+            }
+
+            _shuffleList() {
+                this.setState({
+                    visiblePersonList: shuffleList(this.state.personList)
+                });
+            }
+
+            _sortByFirst() {
+                this.setState({
+                    visiblePersonList: sortByFirstName(this.state.personList)
+                });
+            }
+
+            _sortByLast() {
+                this.setState({
+                    visiblePersonList: sortByLastName(this.state.personList)
+                });
+            }
+
+            _onSearch(e) {
+                e.persist();
+                this.setVisiblePersonList(e.target.value)
+            }
+
+            setVisiblePersonList(query){
+                this.setState({
+                    visiblePersonList: filterByName(query, this.state.personList)
+                })
+            }
+
+
+            render() {
+                const { visiblePersonList } = this.state;
+
+                return ele(ErrorBoundary, null, [
+                    ele('div', { className: 'app-container', key: 'app' }, null, [
+                        ele(Search, { key: 'search', onChange: this._onSearch}),
+                        ele('button', { key: 'shuffle', onClick: this._shuffleList.bind(this) }, null, 'Shuffle'),
+                        ele('button', { key: 'sort-first', onClick: this._sortByFirst.bind(this) }, null, 'Sort (First Name)'),
+                        ele('button', { key: 'sort-last', onClick: this._sortByLast.bind(this) }, null, 'Sort (Last Name)'),
+                        ele(ListContainer, { key: 'list', personList: visiblePersonList })
+                    ])
+                ]);
+            }
+        }
+
+        class ErrorBoundary extends React.Component {
+            constructor(props) {
+                super(props);
+                this.state = { hasError: false };
+            }
+
+            static getDerivedStateFromError(error) {
+                return { hasError: true };
+            }
+
+            componentDidCatch(error, info) {
+                console.error(info);
+            }
+
+            render() {
+                if (this.state.hasError) {
+                    return ele('h1', null, 'Something went wrong.')
+                }
+
+                return this.props.children;
+            }
+        }
+
+
+        ReactDOM.render(
+            ele(App),
+            document.getElementById('app')
+        );
+
+    }
 
 </script>
 </body>
