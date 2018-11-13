@@ -10,7 +10,7 @@
      - Lists employees photos & names.
      - Search for an employee by name.
      - Sort employees by their first names.
-     - Sort empolyees by their last names.
+     - Sort employees by their last names.
      - Shuffle the list order (because why not).
 
      Implementation details:
@@ -79,8 +79,8 @@
 <div id='app'></div>
 
 <!-- 3rd Party Scripts -->
-<script src='https://cdnjs.cloudflare.com/ajax/libs/react/16.6.1/umd/react.production.min.js'></script>
-<script src='https://cdnjs.cloudflare.com/ajax/libs/react-dom/16.6.1/umd/react-dom.production.min.js'></script>
+<script src='//cdnjs.cloudflare.com/ajax/libs/react/16.6.1/umd/react.production.min.js'></script>
+<script src='//cdnjs.cloudflare.com/ajax/libs/react-dom/16.6.1/umd/react-dom.production.min.js'></script>
 
 <!-- Our Application Logic -->
 <script>
@@ -94,7 +94,7 @@
          ***************************************************/
 
         /**
-         * Get the data from the namegame endpoint.
+         * Get the data from the name game endpoint.
          *
          * The data comes back in the format:
          *
@@ -103,6 +103,7 @@
          *        { firstName: 'Matt', lastName: 'Seibert', headshot: { url: '...' } },
          *        ...
          *    ]
+         * @returns {array} of users
          */
         const getPersonList = () => new Promise((resolve, reject) => {
             fetch('https://willowtreeapps.com/api/v1.0/profiles')
@@ -119,12 +120,17 @@
 
          ***************************************************/
 
-        // headshot URLs are scheme relative //
-        // prepend http: to prevent invalid schemes like file:// or uri://
+        /** headshot URLs are scheme relative //
+         *  prepend http: to prevent invalid schemes like file:// or uri://
+         * @param {object} {url} - http path to image
+         * @returns {string} http url
+         */
         const getImageUrl = ({url = '//images.ctfassets.net/3cttzl4i3k1h/1PoufpRNis4mmAmiqkA0ge/ef1fc7606584d54b5892010a65a5a262/WT_Logo-Hye-tTeI0Z.png'}) => `http:${url}`;
 
         /**
          * Fisher-Yates shuffle
+         * @param {array} list to shuffle
+         * @return {array} shuffled array
          */
         const shuffleList = (list) => {
             // Make a copy & don't mutate the passed in list
@@ -145,6 +151,8 @@
         /**
          * Remove any people that do not have the name we are
          * searching for.
+         * @param {string} searchForName - search term
+         * @param {array} personList - haystack to search from
          */
         const filterByName = (searchForName, personList) => {
             let searchTerm = searchForName.toString().toLowerCase();
@@ -165,7 +173,8 @@
          *
          *    console.log(sortedPeople)
          *    > [{ name: 'Jon' }, { name: 'Kevin' }, { name: 'Sam' }]
-         *
+         * @param {array} prop - object key inside array to search
+         * @returns {array} - sorted array
          */
         const sortObjListByProp = (prop) => {
             return function (objList) {
@@ -182,8 +191,31 @@
             };
         };
 
+        /** Sorts by first name
+         * @returns {array} - sorted array
+         */
         const sortByFirstName = sortObjListByProp('firstName');
+
+        /** Sorts by last name
+         * @returns {array} - sorted array
+         */
         const sortByLastName = sortObjListByProp('lastName');
+
+        /**
+         * Debounce util
+         * @param {function} fn - funct that executes
+         * @param {number} time - exec delay
+         * @return {function} function wrapped with debounce on it.
+         */
+        const debounce = (fn, time) => {
+            let timeout;
+
+            return function (...args) {
+                const functionCall = () => fn.apply(this, args);
+                clearTimeout(timeout);
+                timeout = setTimeout(functionCall, time);
+            };
+        };
 
         /*==================================================
 
@@ -191,10 +223,25 @@
 
          ***************************************************/
 
+        /**
+         * Search input
+         * @param {function} onChange - onchange funct value
+         * @return {button} - button element
+         */
         const Search = ({onChange}) => ele('input', {type: 'input', placeholder: 'Search for person', onChange});
 
+        /**
+         * Thumbnail image
+         * @param {string} src - image path
+         * @return {img} - image tag
+         */
         const Thumbnail = ({src}) => ele('img', {className: 'image', src});
 
+        /**
+         * List row
+         * @param {object} person: {firstName, lastName, headshot} - person list data from api
+         * @return {tr} - table row with appropriate fields
+         */
         const ListRow = ({person: {firstName, lastName, headshot}}) =>
             ele('tr', {key: `${firstName} ${lastName}`}, [
                 ele('td', {key: 'thumb'}, ele(Thumbnail, {src: getImageUrl(headshot)})),
@@ -202,6 +249,11 @@
                 ele('td', {key: 'last'}, null, lastName)
             ]);
 
+        /**
+         * List Container
+         * @param {object} {personList} - list data formatted to table rows
+         * @return {table} table of data
+         */
         const ListContainer = ({personList}) =>
             ele('table', {className: 'list-container'}, [
                 ele('thead', {key: 'thead'},
@@ -216,21 +268,15 @@
                 )
             ]);
 
-        const debounce = (fn, time) => {
-            let timeout;
-
-            return function (...args) {
-                const functionCall = () => fn.apply(this, args);
-                clearTimeout(timeout);
-                timeout = setTimeout(functionCall, time);
-            };
-        };
-
+        /**
+         * Main app container
+         */
         class App extends React.Component {
             constructor(props) {
                 super(props);
                 this.state = {
-                    personList: [], visiblePersonList: []
+                    personList: [],
+                    visiblePersonList: []
                 };
 
                 this._onSearch = this._onSearch.bind(this);
@@ -291,6 +337,9 @@
             }
         }
 
+        /**
+         * Wraps the react component in an error boundary (react 15/16 addition)
+         */
         class ErrorBoundary extends React.Component {
             constructor(props) {
                 super(props);
